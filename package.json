@@ -1,0 +1,17 @@
+{
+  "name": "gulp-template",
+  "version": "1.0.0",
+  "description": "gulp-template",
+  "main": "main.js",
+  "devDependencies": {
+    "bower": "^1.6.5",
+    "del": "^2.0.2",
+    "gulp": "^3.9.0",
+    "gulp-concat": "^2.6.0",
+    "gulp-connect": "^2.2.0",
+    "gulp-minify-css": "^1.2.1",
+    "gulp-notify": "^2.2.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^1.4.2"
+  }
+}
