@@ -1,13 +1,14 @@
-// Modules & Plugins
-// npm install del gulp-concat gulp-connect gulp-minify-css gulp-notify gulp-rename gulp-uglify --save-dev
+//Modules
 var del = require('del');
+var fs = require('fs');
+var sass = require('node-sass');
+
+//gulp.js plugin registry.
 var gulp = require('gulp');
-var concat = require('gulp-concat');
-var connect = require('gulp-connect');
-var minifycss = require('gulp-minify-css');
-var notify = require('gulp-notify');
-var rename = require('gulp-rename');
-var uglify = require('gulp-uglify');
+var plugins = require('gulp-load-plugins')();
+
+var config = require('./config');
+
 
 // Error Helper
 function onError(err) {
@@ -16,53 +17,67 @@ function onError(err) {
 
 // Server Task.
 gulp.task('server', function() {
-  connect.server({
-    root: 'dist/',
+  plugins.connect.server({
+    root: config.appPath,
     livereload: true
   });
 });
 
 gulp.task('html', function() {
-  gulp.src('dist/*.html')
-    .pipe(connect.reload());
+  gulp.src(config.appPath + '*.html')
+    .pipe(plugins.connect.reload());
 });
 
 // Scripts Task.
 gulp.task('scripts', function() {
-  gulp.src('src/js/*.js')
-    .pipe(concat('main.js'))
-    .pipe(gulp.dest('dist/js'))
-    .pipe(rename({
+  gulp.src(config.scriptPath + '*.js')
+    .pipe(plugins.concat('main.js'))
+    .pipe(gulp.dest(config.appPath + 'js'))
+    .pipe(plugins.rename({
       suffix: '.min'
-	}))
-    .pipe(uglify())
-    .pipe(gulp.dest('dist/js'))
-    .pipe(notify({message: 'Scripts task complete'}));
+    }))
+    .pipe(plugins.uglify())
+    .pipe(gulp.dest(config.appPath + 'js'))
+    .pipe(plugins.connect.reload());
 });
 
 // Styles Task.
-gulp.task('styles', function() {
-  gulp.src('src/css/*.css')
-    .pipe(concat('all.css'))
-    .pipe(gulp.dest('dist/css'))
-    .pipe(rename({
-      suffix: '.min'
-    }))
-    .pipe(minifycss())
-    .pipe(gulp.dest('dist/css'))
-    .pipe(notify({ message: 'Styles task complete' }));
+gulp.task('sass', function() {
+  sass.render({
+    file: config.stylePath + 'main.scss',
+  }, function(err, result) {
+    var _dir = config.appPath + 'css/';
+    if (!fs.existsSync(_dir)) {
+      fs.mkdirSync(_dir);
+    }
+    fs.writeFile(_dir + 'main.css', result.css, function(err) {
+      if (err) {
+        return console.log(err);
+      }
+      console.log("The file was saved!");
+      gulp.src(_dir + 'main.css')
+        .pipe(plugins.minifyCss())
+        .pipe(plugins.rename({
+          suffix: '.min'
+        }))
+        .pipe(gulp.dest(_dir))
+        .pipe(plugins.connect.reload());
+    });
+  });
 });
 
 // Watch Task.
 gulp.task('watch', function() {
-  gulp.watch(['app/**.html', 'src/js/**/*.js', 'src/css/**/*.css'], ['html', 'scripts', 'styles']);
+  gulp.watch(config.appPath + '*.html', ['html']);
+  gulp.watch(config.scriptPath + '*.js', ['scripts']);
+  gulp.watch(config.stylePath + '*.scss', ['sass']);
 }).on('change', function(event) {
-    console.log('File ' + event.path + ' was ' + event.type);
+  console.log('File ' + event.path + ' was ' + event.type);
 });
 
 // Clean
 gulp.task('clean', function(cb) {
-  del(['dist/css/**', 'dist/js/**', '!dist/css', '!dist/js'],cb)
+  del([config.appPath + 'css/**', config.appPath + 'js/**', '!app/css', '!app/js'], cb)
     .then(function(paths) {
       console.log('Deleted files/folders:\n', paths.join('\n'));
     })
@@ -71,5 +86,12 @@ gulp.task('clean', function(cb) {
 
 // Default Task.
 gulp.task('default', ['clean'], function() {
-    gulp.start('html', 'styles', 'scripts', 'server', 'watch');
+  gulp.start('html', 'sass', 'scripts', 'server', 'watch');
+});
+
+// Deploy Task.
+gulp.task('deploy', function() {
+  return gulp.src(config.appPath + '**/*')
+    .pipe(plugins.ghPages());
+
 });
