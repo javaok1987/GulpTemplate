@@ -1,4 +1,4 @@
-# gulp-template
+# Gulp Template
 -----------------
 
 ## Install
